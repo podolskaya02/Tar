@@ -14,11 +14,11 @@ public class Tar {
     @Argument(required = true, hidden = true)
     private File[] files;
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) {
         new Tar().launch(args);
     }
 
-    File launch(String[] args) throws FileNotFoundException {
+    File launch(String[] args) {
         CmdLineParser parser = new CmdLineParser(Tar.this);
         try {
             parser.parseArgument(args);
@@ -40,6 +40,7 @@ public class Tar {
         }
         return s.deleteCharAt(s.length() - 2);
     }
+
 
     private File unite() throws IOException {
         File outputFile = new File("outputForUnite\\outputForUnite"); // выходной файл после объединения файлов
