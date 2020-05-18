@@ -11,8 +11,9 @@ public class Tar {
     private boolean out;
     @Option(name = "-u")
     private boolean u;
-    @Argument(required = true, hidden = true)
-    private File[] files;
+    @Argument(required = true)
+    private File[] inputFiles;
+
 
     public static void main(String[] args) {
         new Tar().launch(args);
@@ -33,21 +34,19 @@ public class Tar {
         return null;
     }
 
-    private StringBuilder filesNames() {
-        StringBuilder s = new StringBuilder();
-        for (File file : files) {
-            s.append(file.getName()).append(", ");
-        }
-        return s.deleteCharAt(s.length() - 2);
+    private String firstString() {
+        return "// PACKED WITH TAR //" + "\n" + "\n";
     }
-
+    private String endOfFile() { return "// END OF FILE //" + "\n" + "\n"; }
 
     private File unite() throws IOException {
         File outputFile = new File("outputForUnite\\outputForUnite"); // выходной файл после объединения файлов
         BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(outputFile));
+        bufferedWriter.write(firstString());
         int count = 0;
         String line;
-        for (File file : files) { // для каждого файла
+        for (File file : inputFiles) { // для каждого файла
+            bufferedWriter.write("// FILENAME: " + file.getName() + " //" + "\n"); // пишем имя входных файлов
             BufferedReader bufferedReader = new BufferedReader(new FileReader(file));
             while ((line = bufferedReader.readLine()) != null) { // считываем построчно
                 if (line.contains("\\")) { // начальная граница
@@ -78,29 +77,30 @@ public class Tar {
                     count = 0;
                 }
             }
+            bufferedWriter.write(endOfFile()); // конец файла
         }
-        bufferedWriter.newLine();
-        bufferedWriter.write("Input files: " + filesNames());
         bufferedWriter.close();
         return outputFile;
     }
 
     private File[] split() throws IOException {
-        File[] outputFiles = new File("outputFiles").listFiles(); // выходные файлы после разделения файла
+        File[] outputFiles = new File("outputFiles").listFiles();
         boolean mark;
-        String line;
-        StringBuilder lineForWrite;
-        StringBuilder anotherLine = new StringBuilder();
-        BufferedReader bufferedReader = new BufferedReader(new FileReader(new File(String.valueOf(files[0]))));
+        String line; // строчка, которую мы считываем
+        StringBuilder lineForWrite; // строчка, которую напишем в выходной файл
+        StringBuilder anotherLine = new StringBuilder(); // для случая, если разделение идет в середине строки
+        BufferedReader bufferedReader = new BufferedReader(new FileReader(new File(String.valueOf(inputFiles[0]))));
         assert outputFiles != null;
         for (File file : outputFiles) {
             mark = false;
             BufferedWriter bufferedWritter = new BufferedWriter(new FileWriter(file));
+            bufferedWritter.write(firstString());
+            bufferedWritter.write("// FILENAME: " + inputFiles[0].getName() + " //" + "\n"); // пишем имя входного файла
             if (!anotherLine.toString().equals("")) {
                 bufferedWritter.write(String.valueOf(anotherLine)); // записываем значение строчки после границы в новый файл
                 bufferedWritter.write("\n");
             }
-            anotherLine = new StringBuilder(); // обнуляем
+            anotherLine = new StringBuilder(); // обнуляем строчку
             while ((line = bufferedReader.readLine()) != null) { // пока не дойдем до границы разделения
                     lineForWrite = new StringBuilder();
                     lineForWrite.append(line);
@@ -112,9 +112,11 @@ public class Tar {
                     }
                     bufferedWritter.write(String.valueOf(lineForWrite));
                     bufferedWritter.flush();
-                    if (mark) break;
+                    if (mark) break; // если дошли до границы разделения
                     bufferedWritter.write("\n");
             }
+            bufferedWritter.write( "\n" + endOfFile()); // конец файла
+            bufferedWritter.close();
         }
         return outputFiles;
     }
