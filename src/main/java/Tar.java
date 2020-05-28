@@ -4,15 +4,16 @@ import org.kohsuke.args4j.CmdLineParser;
 import org.kohsuke.args4j.Option;
 
 import java.io.*;
+import java.util.ArrayList;
 import java.util.Arrays;
 
 public class Tar {
+    @Argument(required = true)
+    private File[] inputFiles;
     @Option(name = "-out")
     private boolean out;
     @Option(name = "-u")
     private boolean u;
-    @Argument(required = true)
-    private File[] inputFiles;
 
 
     public static void main(String[] args) {
@@ -26,7 +27,7 @@ public class Tar {
             if (out) {
                 return unite();
             } else if (u) {
-                return new File(Arrays.toString(split()));
+                return new File(String.valueOf(split()));
             }
         } catch (CmdLineException | IOException e) {
             e.printStackTrace();
@@ -40,12 +41,14 @@ public class Tar {
     private String endOfFile() { return "// END OF FILE //" + "\n" + "\n"; }
 
     private File unite() throws IOException {
-        File outputFile = new File("outputForUnite\\outputForUnite"); // выходной файл после объединения файлов
+        ArrayList<File> listOfInputFiles = new ArrayList<>(Arrays.asList(inputFiles));
+        File outputFile = new File(String.valueOf(inputFiles[inputFiles.length - 1])); // создаем выходной файл
+        listOfInputFiles.remove(inputFiles.length - 1); // удаляем из входных данных файл, который является выходным
         BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(outputFile));
         bufferedWriter.write(firstString());
         int count = 0;
         String line;
-        for (File file : inputFiles) { // для каждого файла
+        for (File file : listOfInputFiles) { // для каждого файла
             bufferedWriter.write("// FILENAME: " + file.getName() + " //" + "\n"); // пишем имя входных файлов
             BufferedReader bufferedReader = new BufferedReader(new FileReader(file));
             while ((line = bufferedReader.readLine()) != null) { // считываем построчно
@@ -83,15 +86,15 @@ public class Tar {
         return outputFile;
     }
 
-    private File[] split() throws IOException {
-        File[] outputFiles = new File("outputFiles").listFiles();
+    private ArrayList<File> split() throws IOException {
+        ArrayList<File> listOfOutputFiles = new ArrayList<>(Arrays.asList(inputFiles));
+        listOfOutputFiles.remove(0); // удаляем файл, который является входным
         boolean mark;
         String line; // строчка, которую мы считываем
         StringBuilder lineForWrite; // строчка, которую напишем в выходной файл
         StringBuilder anotherLine = new StringBuilder(); // для случая, если разделение идет в середине строки
-        BufferedReader bufferedReader = new BufferedReader(new FileReader(new File(String.valueOf(inputFiles[0]))));
-        assert outputFiles != null;
-        for (File file : outputFiles) {
+        BufferedReader bufferedReader = new BufferedReader(new FileReader(new File(String.valueOf(inputFiles[0])))); // входной файл
+        for (File file : listOfOutputFiles) {
             mark = false;
             BufferedWriter bufferedWritter = new BufferedWriter(new FileWriter(file));
             bufferedWritter.write(firstString());
@@ -118,6 +121,6 @@ public class Tar {
             bufferedWritter.write( "\n" + endOfFile()); // конец файла
             bufferedWritter.close();
         }
-        return outputFiles;
+        return listOfOutputFiles;
     }
 }
